@@ -6,48 +6,51 @@ services:
     container_name: todo-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword        # container root password
+      MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: todo_app
       MYSQL_USER: todo_user
       MYSQL_PASSWORD: todo_pass
     ports:
-      - "3307:3306"                            # host 3307 -> container 3306
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$$MYSQL_USER -p$$MYSQL_PASSWORD || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
 
   server:
     build: ./server
     container_name: todo-server
     restart: unless-stopped
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy   # wait until mysql healthcheck passes
     environment:
       PORT: 5000
       NODE_ENV: production
-
-      # MySQL connection details (inside Docker network)
       DB_HOST: mysql
       DB_PORT: 3306
       DB_USER: todo_user
       DB_PASSWORD: todo_pass
       DB_NAME: todo_app
     ports:
-      - "5000:5000"  # host 5000 -> container 5000
+      - "5000:5000"
 
   client:
     build:
       context: ./client
       args:
-        # This is what React (Vite) uses inside api.js: import.meta.env.VITE_API_URL
-        VITE_API_URL: "http://4.150.115.119:5000/api"
-        # replace 4.150.115.119 with your VM/domain when needed
+        VITE_API_URL: "http://4.150.115.119:5000/api"  # or your domain later
     container_name: todo-client
     restart: unless-stopped
     depends_on:
       - server
     ports:
-      - "5173:80"    # host 5173 -> nginx 80
+      - "5173:80"
 
 volumes:
   mysql_data:
