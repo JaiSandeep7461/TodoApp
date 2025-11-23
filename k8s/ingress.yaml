@@ -8,11 +8,12 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: ""   # no host restriction; use bare IP
+    - host: ""
       http:
         paths:
-          # Frontend: route "/" to client service
-          - path: /(.*)?
+
+          # Frontend: serve all at "/"
+          - path: /
             pathType: Prefix
             backend:
               service:
@@ -20,8 +21,8 @@ spec:
                 port:
                   number: 80
 
-          # Backend: route "/api" to server service
-          - path: /api(/.*)?
+          # Backend: API path
+          - path: /api
             pathType: Prefix
             backend:
               service:
