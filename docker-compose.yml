@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   mysql:
-    image: mysql:8.0
+    build: ./mysql                     # uses mysql/Dockerfile (with init.sql baked in)
     container_name: todo-mysql
     restart: unless-stopped
     environment:
@@ -11,10 +11,9 @@ services:
       MYSQL_USER: todo_user
       MYSQL_PASSWORD: todo_pass
     ports:
-      - "3307:3306"
+      - "3307:3306"                    # host 3307 -> container 3306
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - mysql_data:/var/lib/mysql      # persistent DB data
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$$MYSQL_USER -p$$MYSQL_PASSWORD || exit 1"]
       interval: 5s
@@ -28,29 +27,29 @@ services:
     restart: unless-stopped
     depends_on:
       mysql:
-        condition: service_healthy   # wait until mysql healthcheck passes
+        condition: service_healthy     # wait until MySQL is healthy
     environment:
       PORT: 5000
       NODE_ENV: production
-      DB_HOST: mysql
+      DB_HOST: mysql                   # service name, not localhost
       DB_PORT: 3306
       DB_USER: todo_user
       DB_PASSWORD: todo_pass
       DB_NAME: todo_app
     ports:
-      - "5000:5000"
+      - "5000:5000"                    # host 5000 -> container 5000
 
   client:
     build:
       context: ./client
       args:
-        VITE_API_URL: "http://4.150.115.119:5000/api"  # or your domain later
+        VITE_API_URL: "http://4.150.115.119:5000/api"  # change to your domain/IP when needed
     container_name: todo-client
     restart: unless-stopped
     depends_on:
       - server
     ports:
-      - "5173:80"
+      - "5173:80"                      # host 5173 -> nginx 80
 
 volumes:
   mysql_data:
