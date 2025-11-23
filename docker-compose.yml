@@ -26,7 +26,7 @@ services:
       PORT: 5000
       NODE_ENV: production
 
-      # <<< IMPORTANT: DB HOST IS THE SERVICE NAME, NOT localhost >>>
+      # MySQL connection details (inside Docker network)
       DB_HOST: mysql
       DB_PORT: 3306
       DB_USER: todo_user
@@ -36,12 +36,18 @@ services:
       - "5000:5000"  # host 5000 -> container 5000
 
   client:
-    build: ./client
+    build:
+      context: ./client
+      args:
+        # This is what React (Vite) uses inside api.js: import.meta.env.VITE_API_URL
+        VITE_API_URL: "http://4.150.115.119:5000/api"
+        # replace 4.150.115.119 with your VM/domain when needed
     container_name: todo-client
     restart: unless-stopped
     depends_on:
       - server
     ports:
       - "5173:80"    # host 5173 -> nginx 80
+
 volumes:
   mysql_data:
