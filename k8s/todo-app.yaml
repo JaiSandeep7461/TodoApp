@@ -17,7 +17,7 @@ stringData:
   MYSQL_USER: todo_user
   MYSQL_PASSWORD: todo_pass
 ---
-# MySQL Deployment (uses todoapp_mysql:latest)
+# MySQL Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -35,7 +35,7 @@ spec:
     spec:
       containers:
         - name: mysql
-          image: todoapp_mysql:latest        # <--- your image
+          image: sandy7461/todoapp_mysql:latest   # <--- Docker Hub image
           ports:
             - containerPort: 3306
           envFrom:
@@ -46,9 +46,9 @@ spec:
               mountPath: /var/lib/mysql
       volumes:
         - name: mysql-data
-          emptyDir: {}                       # demo only (NO persistence)
+          emptyDir: {}                             # demo only (no persistence)
 ---
-# MySQL ClusterIP Service
+# MySQL Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -61,7 +61,7 @@ spec:
     - port: 3306
       targetPort: 3306
 ---
-# Server Deployment (uses todoapp_server:latest)
+# Server Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -79,7 +79,7 @@ spec:
     spec:
       containers:
         - name: server
-          image: todoapp_server:latest      
+          image: sandy7461/todoapp_server:latest  # <--- Docker Hub image
           ports:
             - containerPort: 5000
           env:
@@ -88,7 +88,7 @@ spec:
             - name: NODE_ENV
               value: "production"
             - name: DB_HOST
-              value: "mysql"                 # service name
+              value: "mysql"
             - name: DB_PORT
               value: "3306"
             - name: DB_NAME
@@ -107,7 +107,7 @@ spec:
                   name: mysql-secret
                   key: MYSQL_PASSWORD
 ---
-# Server Service (NodePort -> will be mapped to host:5000 by kind)
+# Server Service (NodePort -> kind maps 30081 -> host 5000)
 apiVersion: v1
 kind: Service
 metadata:
@@ -118,11 +118,11 @@ spec:
   selector:
     app: todo-server
   ports:
-    - port: 5000          # service port
-      targetPort: 5000    # container port
-      nodePort: 30081     # kind maps this to hostPort 5000 (via kind config)
+    - port: 5000
+      targetPort: 5000
+      nodePort: 30081
 ---
-# Client Deployment (uses todoapp_client:latest)
+# Client Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -140,11 +140,11 @@ spec:
     spec:
       containers:
         - name: client
-          image: todoapp_client:latest       # <--- your image
+          image: sandy7461/todoapp_client:latest  # <--- Docker Hub image
           ports:
             - containerPort: 80
 ---
-# Client Service (NodePort -> will be mapped to host:5173 by kind)
+# Client Service (NodePort -> kind maps 30080 -> host 5173)
 apiVersion: v1
 kind: Service
 metadata:
@@ -155,6 +155,6 @@ spec:
   selector:
     app: todo-client
   ports:
-    - port: 80            # service port
-      targetPort: 80      # container port
-      nodePort: 30080     # kind maps this to hostPort 5173 (via kind config)
+    - port: 80
+      targetPort: 80
+      nodePort: 30080
