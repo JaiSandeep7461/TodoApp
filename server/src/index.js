@@ -25,7 +25,7 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-// retry DB connect but DON'T exit the process
+// Try connecting to DB with retries, but DON'T kill the process
 async function waitForDb(maxRetries = 20, delayMs = 5000) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -41,7 +41,7 @@ async function waitForDb(maxRetries = 20, delayMs = 5000) {
       );
       if (attempt === maxRetries) {
         console.error(
-          "⚠️ Giving up on DB startup check; server will still run, API will return 500 for DB calls until MySQL is actually reachable."
+          "⚠️ Giving up on DB startup check; server will keep running and will still retry on queries."
         );
         return;
       }
@@ -52,5 +52,5 @@ async function waitForDb(maxRetries = 20, delayMs = 5000) {
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  waitForDb(); // fire and forget
+  waitForDb();
 });

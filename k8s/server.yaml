@@ -25,7 +25,7 @@ spec:
             - name: NODE_ENV
               value: "production"
             - name: DB_HOST
-              value: "mysql.todo-app.svc.cluster.local"     
+              value: "mysql"     
             - name: DB_PORT
               value: "3306"
             - name: DB_NAME
