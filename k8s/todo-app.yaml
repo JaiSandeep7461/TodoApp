@@ -1,0 +1,160 @@
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: todo-app
+---
+# Secret for MySQL credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  namespace: todo-app
+type: Opaque
+stringData:
+  MYSQL_ROOT_PASSWORD: rootpassword
+  MYSQL_DATABASE: todo_app
+  MYSQL_USER: todo_user
+  MYSQL_PASSWORD: todo_pass
+---
+# MySQL Deployment (uses todoapp_mysql:latest)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: todo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: todoapp_mysql:latest        # <--- your image
+          ports:
+            - containerPort: 3306
+          envFrom:
+            - secretRef:
+                name: mysql-secret
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-data
+          emptyDir: {}                       # demo only (NO persistence)
+---
+# MySQL ClusterIP Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: todo-app
+spec:
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+      targetPort: 3306
+---
+# Server Deployment (uses todoapp_server:latest)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-server
+  namespace: todo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-server
+  template:
+    metadata:
+      labels:
+        app: todo-server
+    spec:
+      containers:
+        - name: server
+          image: todoapp_server:latest      
+          ports:
+            - containerPort: 5000
+          env:
+            - name: PORT
+              value: "5000"
+            - name: NODE_ENV
+              value: "production"
+            - name: DB_HOST
+              value: "mysql"                 # service name
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_DATABASE
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_PASSWORD
+---
+# Server Service (NodePort -> will be mapped to host:5000 by kind)
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-server-svc
+  namespace: todo-app
+spec:
+  type: NodePort
+  selector:
+    app: todo-server
+  ports:
+    - port: 5000          # service port
+      targetPort: 5000    # container port
+      nodePort: 30081     # kind maps this to hostPort 5000 (via kind config)
+---
+# Client Deployment (uses todoapp_client:latest)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-client
+  namespace: todo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-client
+  template:
+    metadata:
+      labels:
+        app: todo-client
+    spec:
+      containers:
+        - name: client
+          image: todoapp_client:latest       # <--- your image
+          ports:
+            - containerPort: 80
+---
+# Client Service (NodePort -> will be mapped to host:5173 by kind)
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-client-svc
+  namespace: todo-app
+spec:
+  type: NodePort
+  selector:
+    app: todo-client
+  ports:
+    - port: 80            # service port
+      targetPort: 80      # container port
+      nodePort: 30080     # kind maps this to hostPort 5173 (via kind config)
